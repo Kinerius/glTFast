@@ -52,7 +52,7 @@ using System.Text;
 using UnityEditor;
 #endif
 
-[assembly: InternalsVisibleTo("glTFastEditor")]
+[assembly: InternalsVisibleTo("glTFast.Editor")]
 [assembly: InternalsVisibleTo("glTF-test-framework.Tests")]
 
 namespace GLTFast.Export {
@@ -156,6 +156,7 @@ namespace GLTFast.Export {
         
         /// <inheritdoc />
         public void AddMeshToNode(int nodeId, UnityEngine.Mesh uMesh, int[] materialIds) {
+            if ((m_Settings.componentMask & ComponentType.Mesh) == 0) return;
             CertifyNotDisposed();
             var node = m_Nodes[nodeId];
 
@@ -169,6 +170,10 @@ namespace GLTFast.Export {
 
         /// <inheritdoc />
         public bool AddCamera(UnityEngine.Camera uCamera, out int cameraId) {
+            if ((m_Settings.componentMask & ComponentType.Camera) == 0) {
+                cameraId = -1;
+                return false;
+            }
             CertifyNotDisposed();
 
             var camera = new Camera();
@@ -176,9 +181,17 @@ namespace GLTFast.Export {
             if (uCamera.orthographic) {
                 camera.typeEnum = Camera.Type.Orthographic;
                 var oSize = uCamera.orthographicSize;
+                var aspectRatio = 1f;
+                var targetTexture = uCamera.targetTexture;
+                if (targetTexture == null) {
+                    aspectRatio = Screen.width / (float) Screen.height; 
+                }
+                else {
+                    aspectRatio = targetTexture.width / (float) targetTexture.height;
+                }
                 camera.orthographic = new CameraOrthographic {
                     ymag = oSize,
-                    xmag = oSize * Screen.width / Screen.height,
+                    xmag = oSize * aspectRatio,
                     // TODO: Check if local scale should be applied to near/far
                     znear = uCamera.nearClipPlane,
                     zfar = uCamera.farClipPlane
@@ -204,12 +217,29 @@ namespace GLTFast.Export {
 
         /// <inheritdoc />
         public bool AddLight(Light uLight, out int lightId) {
+            if ((m_Settings.componentMask & ComponentType.Light) == 0) {
+                lightId = -1;
+                return false;
+            }
             CertifyNotDisposed();
             var light = new LightPunctual {
                 name = uLight.name
             };
 
-            switch (uLight.type) {
+            var lightType = uLight.type;
+            
+            var renderPipeline = RenderPipelineUtils.renderPipeline;
+#if USING_HDRP
+            HDAdditionalLightData lightHd = null;
+            if (renderPipeline == RenderPipeline.HighDefinition) {
+                lightHd = uLight.gameObject.GetComponent<HDAdditionalLightData>();
+                if (lightHd!=null && lightHd.type == HDLightType.Area) {
+                    lightType = LightType.Area;
+                }
+            }
+#endif
+            
+            switch (lightType) {
                 case LightType.Spot:
                     light.typeEnum = LightPunctual.Type.Spot;
                     light.spot = new SpotLight {
@@ -237,7 +267,6 @@ namespace GLTFast.Export {
             light.lightColor = uLight.color.linear;
             light.range = uLight.range;
             
-            var renderPipeline = RenderPipelineUtils.renderPipeline;
             switch (renderPipeline) {
                 case RenderPipeline.BuiltIn:
                     light.intensity = uLight.intensity * Mathf.PI;
@@ -247,7 +276,6 @@ namespace GLTFast.Export {
                     break;
 #if USING_HDRP
                 case RenderPipeline.HighDefinition:
-                    var lightHd = uLight.gameObject.GetComponent<HDAdditionalLightData>();
 
                     float GetIntensity(LightUnit unit) {
                         if (lightHd.lightUnit == unit) {

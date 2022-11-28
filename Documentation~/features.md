@@ -124,7 +124,7 @@ The glTF 2.0 specification is fully supported, with only a few minor remarks.
 | KHR_texture_transform | ✅ | ✅
 | KHR_mesh_quantization | ✅ | 
 | KHR_texture_basisu | ✅ | 
-| KHR_lights_punctual | ✅ | 
+| KHR_lights_punctual | ✅ | ✅
 | KHR_materials_clearcoat | [ℹ️][ClearCoat] | 
 | KHR_materials_sheen | [ℹ️][Sheen] | 
 | KHR_materials_transmission | [ℹ️][Transmission] | 
@@ -184,6 +184,7 @@ Not investigated yet:
 | IOR                           | [ℹ️][IOR]      | [ℹ️][IOR]      | [⛔️][IOR]      |
 | Specular                      | [ℹ️][Specular] | [ℹ️][Specular] | [⛔️][Specular] |
 | Volume                        | [ℹ️][Volume]   | [ℹ️][Volume]   | [⛔️][Volume]   |
+| Point clouds                  |      |     | Unlit only |
 
 <sup>1</sup>: Physically-Based Rendering (PBR) material model
 
